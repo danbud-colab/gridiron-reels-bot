@@ -55,7 +55,7 @@ def main():
     tz = ZoneInfo(os.environ.get("DISPLAY_TZ", "America/New_York"))
     lo = float(os.environ.get("POST_MIN_HOURS", 4))
     hi = float(os.environ.get("POST_MAX_HOURS", 5))
-    cap = int(os.environ.get("MAX_POSTS_PER_RUN", 5))
+    cap = int(os.environ.get("MAX_POSTS_PER_RUN", 10))
 
     games = espn.parse_events(MOCK) if a.mock else espn.fetch_games()
     posted = json.loads(STATE.read_text()) if STATE.exists() else {}
