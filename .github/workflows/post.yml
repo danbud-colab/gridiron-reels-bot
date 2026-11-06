@@ -30,7 +30,7 @@ jobs:
         run: pip install -r requirements.txt
 
       - name: Run bot
-        run: python main.py --all-upcoming
+        run: python main.py --dry-run
         env:
           FB_PAGE_ID: ${{ secrets.FB_PAGE_ID }}
           FB_PAGE_TOKEN: ${{ secrets.FB_PAGE_TOKEN }}
