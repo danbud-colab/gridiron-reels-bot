@@ -1,10 +1,10 @@
 """NFL reel bot: every run, post a team-specific reel for games kicking off in 4-5 hours."""
 from __future__ import annotations
-import argparse, datetime as dt, json, os, re, sys
+import argparse, datetime as dt, json, os, random, re, sys, time
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
-import espn, render, facebook
+import espn, render, animate, facebook
 
 ROOT = Path(__file__).parent
 STATE = ROOT / "posted.json"
@@ -56,6 +56,8 @@ def main():
     lo = float(os.environ.get("POST_MIN_HOURS", 4))
     hi = float(os.environ.get("POST_MAX_HOURS", 5))
     cap = int(os.environ.get("MAX_POSTS_PER_RUN", 10))
+    gap_lo = float(os.environ.get("POST_GAP_MIN_MINUTES", 3))
+    gap_hi = float(os.environ.get("POST_GAP_MAX_MINUTES", 5))
 
     games = espn.parse_events(MOCK) if a.mock else espn.fetch_games()
     posted = json.loads(STATE.read_text()) if STATE.exists() else {}
@@ -75,10 +77,17 @@ def main():
         if cap and count >= cap:
             print("per-run cap reached; remaining games wait for the next run")
             break
+        if count > 0 and gap_hi > 0 and not a.dry_run:
+            wait = random.uniform(min(gap_lo, gap_hi), gap_hi)
+            print(f"waiting {wait:.1f} min before the next post...")
+            time.sleep(wait * 60)
         label = f"{g.away.abbr} @ {g.home.abbr}"
         print(f"→ {label}")
-        out = render.render_reel(g, kickoff_text(g, tz), BASE_VIDEO,
-                                 ROOT / "out" / f"{g.id}_{g.away.abbr}_{g.home.abbr}.mp4", ROOT / "out" / "tmp")
+        target = ROOT / "out" / f"{g.id}_{g.away.abbr}_{g.home.abbr}.mp4"
+        if os.environ.get("RENDER_STYLE", "animated") == "overlay":   # old style: your base video + overlay
+            out = render.render_reel(g, kickoff_text(g, tz), BASE_VIDEO, target, ROOT / "out" / "tmp")
+        else:                                                        # default: fully generated, no helmets
+            out = animate.render_animated(g, kickoff_text(g, tz), target, ROOT / "out" / "tmp")
         if a.dry_run:
             print(f"  rendered {out} (dry run, not posted)")
             continue
